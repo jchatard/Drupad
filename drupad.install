@@ -1,0 +1,25 @@
+<?php // $Id$
+
+function drupad_requirements($phase) {
+  $requirements = array();
+
+  $t = get_t();
+
+  if (!function_exists('json_encode') && !file_exists('sites/all/libraries/jsonwrapper/jsonwrapper_inner.php')) {
+    $requirements['drupad'] = array(
+      'title' => 'Drupad',
+      'value' => $t('The json_encode() function is missing'),
+      'severity' => REQUIREMENT_ERROR,
+      'description' => $t('Drupad module requires the <a href="@json_url">json_encode()</a> function which is available with PHP 5.2. Please download <a href="@jsonwrapper_url">JSON wrapper</a> and extract it in your <em>sites/all/libraries/jsonwrapper</em>.', array('@json_url' => 'http://fr2.php.net/json_encode', '@jsonwrapper_url' => 'http://www.boutell.com/scripts/jsonwrapper.html')),
+    );
+  }
+  else {
+    $requirements['drupad'] = array(
+      'title' => 'Drupad',
+      'value' => $t('The json_encode() function is available'),
+      'severity' => REQUIREMENT_OK,
+    );
+  }
+
+  return $requirements;
+}

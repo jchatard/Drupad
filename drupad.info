@@ -1,0 +1,10 @@
+; $Id$
+
+name = Drupad
+description = Drupad iPhone application connector
+package = Other
+core = 7.x
+
+files[] = drupad.module
+
+version = 7.x-1.x-dev
