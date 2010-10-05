@@ -17,7 +17,7 @@ function drupad_menu() {
   $items = array();
 
   // Module settings
-  $items['admin/config/drupad'] = array(
+  $items['admin/config/system/drupad'] = array(
     'title' => 'Drupad',
     'description' => 'Configure Drupad',
     'page callback' => 'drupal_get_form',
