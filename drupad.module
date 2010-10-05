@@ -64,93 +64,76 @@ function drupad_permission() {
  *
  * Access callback fired on every client application request which
  * will determine if the current logged in user (via the application)
- * can or cannot access the current callback
+ * can or cannot access the current callback.
+ *
+ * If the user is not logged in, this function tries to do so, it
+ * server an HTTP unauthorized status on failure.
+ *
+ * @see drupad_unauthorized()
  *
  * @return boolean
  */
 function drupad_authorize() {
   global $user;
+
+  // First check that the client is Drupad
   if (!strstr($_SERVER['HTTP_USER_AGENT'], 'Drupad')) {
      return FALSE;
   }
+
+  // If the user is anonymous try to log her
   if ($user->uid == 0) {
-    return FALSE;
+    // Extract credentials from the request
+    $credentials = drupad_extract_credentials();
+
+    // Be sure the user isn't blocked or denied by some rules
+    if (user_is_blocked($credentials['login']) || drupal_is_denied('user', $credentials['login'])) {
+      drupad_unauthorized();
+    // Authenticate the user
+    } else if ($uid = user_authenticate($credentials['login'], $credentials['pass'])) {
+      $user = user_load($uid);
+      $edit = array();
+      // Record session
+      user_login_finalize($edit);
+    }
+    else {
+      // Not authorized
+      drupad_unauthorized();
+    }
   }
-  if (user_access('use Drupad application')) {
-    return TRUE;
-  }
+
   if ($user->uid == 1) {
     return TRUE;
   }
-  // if (arg(0) == 'drupad') {
-  //     drupad_unauthorized();
-  //   }
+
+  if (user_access('use Drupad application')) {
+    return TRUE;
+  }
+
   return FALSE;
 }
 
 /**
- * Implementation of hook_init() for HTTP Basic auth
+ * Extracts credentials from the request
  *
- * This hook_init() implementation is responsible for challenging
- * the client with an HTTP Basic authentification based on the current
- * Drupal installation, i.e. login + password. This allows us to log in
- * the user seemlessly from the client application.
- *
- * If credentials given by the client are not correct, the challenge
- * returns a unauthorized response.
- *
- * @see drupad_unauthorized()
+ * @return Array keyed with 'login' and 'pass'
  */
-function drupad_init() {
-  if (arg(0) == 'drupad' /* && strstr($_SERVER['HTTP_USER_AGENT'], 'Drupad') */ ) {
-    // Load credentials.
-    if (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) {
-      $name = $_SERVER['PHP_AUTH_USER'];
-      $pass = $_SERVER['PHP_AUTH_PW'];
-    }
-    elseif (isset($_GET['HTTP_AUTHORIZATION'])) {
-      list($name, $pass) = drupad_parse_header($_GET['HTTP_AUTHORIZATION']);
-    }
-    elseif (!isset($_GET['HTTP_AUTHORIZATION']) && isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
-      list($name, $pass) = drupad_parse_header($_SERVER['REDIRECT_HTTP_AUTHORIZATION']);
-    }
-    elseif (!isset($_GET['HTTP_AUTHORIZATION']) && !isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION']) && isset($_GET['login'])) {
-      list($name, $pass) = drupad_parse_header($_GET['login']);
-    }
-
-    global $user;
-    require_once('includes/form.inc');
-    drupal_load('module', 'user');
-
-    if (isset($name) && isset($pass)) {
-      // Abort if the user with the provided credentials is already logged in.
-      if ($user->uid != 0 && strcasecmp($user->name, $name) == 0) {
-        return;
-      }
-      elseif (!user_is_anonymous()) {
-        drupad_user_logout();
-        exit();
-      }
-
-      if (user_is_blocked($name) || drupal_is_denied('user', $name)) {
-        drupad_unauthorized();
-        exit();
-      }
-      if ($uid = user_authenticate($name, $pass)) {
-        $user = user_load($uid);
-        $edit = array();
-        user_login_finalize($edit);
-      }
-      else {
-        drupad_unauthorized();
-        exit();
-      }
-    }
-    else {
-      drupad_unauthorized();
-      exit();
-    }
+function drupad_extract_credentials() {
+  // Load credentials.
+  if (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) {
+    $name = $_SERVER['PHP_AUTH_USER'];
+    $pass = $_SERVER['PHP_AUTH_PW'];
   }
+  elseif (isset($_GET['HTTP_AUTHORIZATION'])) {
+    list($name, $pass) = drupad_parse_header($_GET['HTTP_AUTHORIZATION']);
+  }
+  elseif (!isset($_GET['HTTP_AUTHORIZATION']) && isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+    list($name, $pass) = drupad_parse_header($_SERVER['REDIRECT_HTTP_AUTHORIZATION']);
+  }
+  elseif (!isset($_GET['HTTP_AUTHORIZATION']) && !isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION']) && isset($_GET['login'])) {
+    list($name, $pass) = drupad_parse_header($_GET['login']);
+  }
+  return array('login' => $name, 'pass' => $pass);
 }
 
 /**
@@ -179,6 +162,7 @@ function drupad_unauthorized() {
     $user = drupal_anonymous_user();
   }
   print $site_name;
+  die();
 }
 
 /**
@@ -434,7 +418,7 @@ function drupad_generate_menu_callbacks() {
  * user_logout() does expect that there is no final
  * redirection with drupal_goto()
  *
- * @see http://api.drupal.org/api/function/user_logout/6
+ * @see http://api.drupal.org/api/function/user_logout/7
  */
 function drupad_user_logout() {
   global $user;
