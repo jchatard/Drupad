@@ -18,7 +18,7 @@ INSTALL
 
 1° Activate as any other module
 
-2° Visit Admin > Site configuration > Drupad to configure the module
+2° Visit Configuration > System > Drupad to configure the module
 
 3° Launch the application from your iPhone or iPodTouch :-)
 
