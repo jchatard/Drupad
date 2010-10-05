@@ -119,6 +119,7 @@ function drupad_comments_publish_cid($cid) {
  
   comment_save($comment);
   $comment = comment_load($cid);
+  watchdog('action', 'Published comment %subject.', array('%subject' => $comment->subject));
 
   $data = array(
     'meta' => array(
@@ -141,6 +142,7 @@ function drupad_comments_unpublish_cid($cid) {
   $comment->status = COMMENT_NOT_PUBLISHED;
 
   comment_save($comment);
+  watchdog('action', 'Unpublished comment %subject.', array('%subject' => $comment->subject));
   $comment = comment_load($cid);
 
   $data = array(
@@ -164,12 +166,13 @@ function drupad_comments_delete_cid($cid) {
   module_load_include('inc', 'comment', 'comment.admin');
   // Delete comment and its replies.
   comment_delete($comment->cid);
+  watchdog('content', 'Deleted comment @cid and its replies.', array('@cid' => $comment->cid));
   _comment_update_node_statistics($comment->nid);
   // Clear the cache so an anonymous user sees that his comment was deleted.
   cache_clear_all();
   $data = array(
     'meta' => array(
-      'cid' => $nid,
+      'cid' => $cid,
       'change' => 'deleted',
       'value' => 1,
     ),
@@ -191,13 +194,14 @@ function drupad_comments_report_and_delete_cid($cid) {
   }
 
   comment_delete($comment->cid);
+  watchdog('content', 'Deleted comment @cid and its replies. Mollom was notified.', array('@cid' => $comment->cid));
   _comment_update_node_statistics($comment->nid);
 
   cache_clear_all();
 
   $data = array(
     'meta' => array(
-      'nid' => $nid,
+      'nid' => $comment->nid,
       'change' => 'deleted',
       'value' => 1,
     ),
@@ -219,6 +223,7 @@ function drupad_comments_report_and_unpublish_cid($cid) {
 
   $comment->status = COMMENT_NOT_PUBLISHED;
   comment_save($comment);
+  watchdog('action', 'Unpublished comment %subject.', array('%subject' => $comment->subject));
   _comment_update_node_statistics($comment->nid);
 
   cache_clear_all();
