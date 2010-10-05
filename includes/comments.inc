@@ -39,7 +39,7 @@ function drupad_comments_list() {
   global $pager_total_items;
 
   if (isset($_GET['status']) && $_GET['status'] != '' && is_numeric($_GET['status'])) {
-    $status = (int) $_GET['status'];
+    $status = _drupad_fix_comment_status($_GET['status']);
   }
   else {
     $status = COMMENT_PUBLISHED;
@@ -312,4 +312,13 @@ function _drupad_comments_insert($nid = NULL, $pid = NULL) {
   );
 
   return $data;
+}
+
+function _drupad_fix_comment_status($d6_status) {
+  if ($d6_status == 1) {
+    return COMMENT_NOT_PUBLISHED;
+  }
+  else {
+    return COMMENT_PUBLISHED;
+  }
 }
