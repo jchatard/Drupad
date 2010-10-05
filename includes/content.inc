@@ -56,7 +56,12 @@ function drupad_content_list() {
   $query = db_select('node', 'n')->extend('PagerDefault');
   $query->fields('n');
   $query->condition('n.status', $status, '=');
-  $query->condition('n.type', $content_types, 'NOT IN');
+
+  // Excluded content types
+  if (!empty($content_types)) {
+    $query->condition('n.type', $content_types, 'NOT IN');
+  }
+
   $query->innerJoin('users', 'u', 'n.uid = u.uid');
   $query->innerJoin('node_type', 'nt', 'n.type = nt.type');
   $query->innerJoin('node_revision', 'r', 'n.vid = r.vid');
